@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: log-services
+  labels:
+    name: log-services
+    scope: internal
+    role: devops-admin
