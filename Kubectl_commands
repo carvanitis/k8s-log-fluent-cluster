@@ -1,0 +1,3 @@
+Commands:
+
+kubectl patch deployment random-logger -p '{"spec":{"template":{"metadata":{"labels":{"log-route":"app1"}}}}}'

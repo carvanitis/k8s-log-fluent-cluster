@@ -38,8 +38,8 @@ extraEnvVars:
 #     readOnly: true
 
 plugins:
-  enabled: false
-  pluginsList: []
+  enabled: true
+  pluginsList: ["fluent-plugin-label-router","fluent-plugin-tag-normaliser","fluent-plugin-multi-format-parser"]
 
 service:
   annotations: {}
@@ -131,12 +131,54 @@ configMaps:
       bind 0.0.0.0
     </source>
   output.conf: |
-    <match **>
-      @id stdout
-      @type stdout
+    <match kube.var.log.containers.**>
+      @id app_log_router
+      @type label_router
       @log_level info
-      include_tag_key true
+      <route>
+        @label @app1
+        @id route_app1
+        <match>
+          labels log-route:app1
+        </match>
+      </route>
+      <route>
+        @label @app2
+        @id route_app2
+        <match>
+          labels log-route:app2
+        </match>
+      </route>
     </match>
+
+    <label @app1>
+      <filter>
+        @type kubernetes_metadata
+      </filter>
+      <match kube.var.log.containers.**>
+        @type tag_normaliser
+        format app1.${namespace}.${pod_name}.${container_name}
+      </match>
+      <match app1.**>
+        @type stdout
+      </match>
+    </label>
+
+    <label @app2>
+      <filter>
+        @type kubernetes_metadata
+      </filter>
+      <match kube.var.log.containers.**>
+        @type tag_normaliser
+        format app2.${namespace}.${pod_name}.${container_name}
+      </match>
+      <match app2.**>
+        @type stdout
+      </match>
+    </label>
+
+
+
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
