@@ -20,4 +20,15 @@ term storage in our datalake for compliance
 ## Architecture
 ![alt text](https://github.com/carvanitis/k8s-log-fluent-cluster/blob/master/pictures/sample-architecture.png?raw=true)
 
+## What we will use?
+The installation of Elasticsearch/Kibana/Kafka and Grafana Loki is out of scope on this minikube project. However, for 
+end to end testing you can install them via helm charts.
 
+* FluentBit
+* FluentD
+* FluentD plugins
+    * fluent-plugin-label-route
+    * fluent-plugin-tag-normaliser
+    * fluent-plugin-multi-format-parser
+    * fluent-plugin-kafka
+    * fluent-plugin-grafana-loki
