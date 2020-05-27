@@ -6,7 +6,7 @@ incident investigation/development clusters, offline analysis and long-term stor
 between system metrics and logs from your services)
 * As the Kubernetes workloads are increasing proper routing of the logs can enable a faster feedback loop in our system
 
-##Description
+## Description
 The purpose of this sample project is to explore the options available for handling the application/audit logs within
 (but not limited to) a kubernetes cluster. An example use case could be: 
 
@@ -17,7 +17,7 @@ Grafana dashboard
 term storage in our datalake for compliance
 4) We need to have distinct routing policy for different services depending on the requirements
 
-##Architecture
+## Architecture
 ![alt text](https://github.com/carvanitis/k8s-log-fluent-cluster/blob/master/pictures/sample-architecture.png?raw=true)
 
 
