@@ -25,6 +25,9 @@ env:
   FLUENT_ELASTICSEARCH_SSL_VERSION: "SSLv23"
   FLUENT_ELASTICSEARCH_SCHEME: http
   FLUENT_ELASTICSEARCH_LOG_ES_400_REASON: true
+  FLUENT_KAFKA_BROKERS: "kafka-broker1:9092,kafka-broker2:9092,kafka-broker3:9092"
+  APP1_FLUENT_KAFKA_TOPIC: "app1-fluentd"
+  
 
 # Extra Environment Values - allows yaml definitions
 extraEnvVars:
@@ -46,7 +49,7 @@ extraEnvVars:
 
 plugins:
   enabled: true
-  pluginsList: ["fluent-plugin-label-router","fluent-plugin-tag-normaliser","fluent-plugin-multi-format-parser"]
+  pluginsList: ["fluent-plugin-label-router","fluent-plugin-tag-normaliser","fluent-plugin-multi-format-parser","fluent-plugin-kafka"]
 
 service:
   annotations: {}
@@ -167,7 +170,27 @@ configMaps:
         format app1.${namespace}.${pod_name}.${container_name}
       </match>
       <match app1.**>
-        @type stdout
+        @type copy
+        <store>
+          @type kafka2
+          brokers "#{ENV['FLUENT_KAFKA_BROKERS'] || 'kafka:9092'}"
+          use_event_time true
+          topic key "#{ENV['APP1_FLUENT_KAFKA_TOPIC' || 'topic']}"
+          <format>
+            @type json
+          </format>
+          <buffer "#{ENV['APP1_FLUENT_KAFKA_TOPIC' || 'topic']}">
+            flush_thread_count "#{ENV['FLUENT_BUFFER_FLUSH_THREAD_COUNT'] || '8'}"
+            flush_interval "#{ENV['FLUENT_BUFFER_FLUSH_INTERVAL'] || '5s'}"
+            chunk_limit_size "#{ENV['FLUENT_BUFFER_CHUNK_LIMIT_SIZE'] || '2M'}"
+            queue_limit_length "#{ENV['FLUENT_BUFFER_QUEUE_LIMIT_LENGTH'] || '32'}"
+            retry_max_interval "#{ENV['FLUENT_BUFFER_RETRY_MAX_INTERVAL'] || '30'}"
+            retry_forever true
+          </buffer>
+        </store>
+        <store>
+          @type stdout
+        </store>
       </match>
     </label>
 
@@ -203,11 +226,11 @@ configMaps:
             index_name "#{ENV['APP2_ELASTICSEARCH_LOGSTASH_INDEX_NAME'] || 'kubernetes'}"
             type_name "#{ENV['FLUENT_ELASTICSEARCH_LOGSTASH_TYPE_NAME'] || 'fluentd'}"
             <buffer>
-              flush_thread_count "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_FLUSH_THREAD_COUNT'] || '8'}"
-              flush_interval "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_FLUSH_INTERVAL'] || '5s'}"
-              chunk_limit_size "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_CHUNK_LIMIT_SIZE'] || '2M'}"
-              queue_limit_length "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_QUEUE_LIMIT_LENGTH'] || '32'}"
-              retry_max_interval "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_RETRY_MAX_INTERVAL'] || '30'}"
+              flush_thread_count "#{ENV['FLUENT_BUFFER_FLUSH_THREAD_COUNT'] || '8'}"
+              flush_interval "#{ENV['FLUENT_BUFFER_FLUSH_INTERVAL'] || '5s'}"
+              chunk_limit_size "#{ENV['FLUENT_BUFFER_CHUNK_LIMIT_SIZE'] || '2M'}"
+              queue_limit_length "#{ENV['FLUENT_BUFFER_QUEUE_LIMIT_LENGTH'] || '32'}"
+              retry_max_interval "#{ENV['FLUENT_BUFFER_RETRY_MAX_INTERVAL'] || '30'}"
               retry_forever true
             </buffer>
           </store>
@@ -226,11 +249,11 @@ configMaps:
               pod $.kubernetes.pod_name
             </label>
             <buffer>
-              flush_thread_count "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_FLUSH_THREAD_COUNT'] || '8'}"
-              flush_interval "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_FLUSH_INTERVAL'] || '5s'}"
-              chunk_limit_size "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_CHUNK_LIMIT_SIZE'] || '2M'}"
-              queue_limit_length "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_QUEUE_LIMIT_LENGTH'] || '32'}"
-              retry_max_interval "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_RETRY_MAX_INTERVAL'] || '30'}"
+              flush_thread_count "#{ENV['FLUENT_BUFFER_FLUSH_THREAD_COUNT'] || '8'}"
+              flush_interval "#{ENV['FLUENT_BUFFER_FLUSH_INTERVAL'] || '5s'}"
+              chunk_limit_size "#{ENV['FLUENT_BUFFER_CHUNK_LIMIT_SIZE'] || '2M'}"
+              queue_limit_length "#{ENV['FLUENT_BUFFER_QUEUE_LIMIT_LENGTH'] || '32'}"
+              retry_max_interval "#{ENV['FLUENT_BUFFER_RETRY_MAX_INTERVAL'] || '30'}"
               retry_forever true
             </buffer>
           </store>
