@@ -17,7 +17,14 @@ output:
   buffer_chunk_limit: 2M
   buffer_queue_limit: 8
 
-env: {}
+env:
+  FLUENT_LOKI_HOST: http://loki:3100
+  FLUENT_ELASTICSEARCH_HOST: elasticsearch-client.default.svc.cluster.local
+  FLUENT_ELASTICSEARCH_PORT: 9200
+  FLUENT_ELASTICSEARCH_SSL_VERIFY: "false"
+  FLUENT_ELASTICSEARCH_SSL_VERSION: "SSLv23"
+  FLUENT_ELASTICSEARCH_SCHEME: http
+  FLUENT_ELASTICSEARCH_LOG_ES_400_REASON: true
 
 # Extra Environment Values - allows yaml definitions
 extraEnvVars:
@@ -173,7 +180,60 @@ configMaps:
         format app2.${namespace}.${pod_name}.${container_name}
       </match>
       <match app2.**>
-        @type stdout
+        @type copy
+          <store>
+            @type elasticsearch
+            @id out_es
+            @log_level info
+            include_tag_key true
+            host "#{ENV['FLUENT_ELASTICSEARCH_HOST']}"
+            port "#{ENV['FLUENT_ELASTICSEARCH_PORT']}"
+            path "#{ENV['FLUENT_ELASTICSEARCH_PATH']}"
+            scheme "#{ENV['FLUENT_ELASTICSEARCH_SCHEME'] || 'http'}"
+            ssl_verify "#{ENV['FLUENT_ELASTICSEARCH_SSL_VERIFY'] || 'true'}"
+            ssl_version "#{ENV['FLUENT_ELASTICSEARCH_SSL_VERSION'] || 'TLSv1'}"
+            user "#{ENV['FLUENT_ELASTICSEARCH_USER']} || ''"
+            password "#{ENV['FLUENT_ELASTICSEARCH_PASSWORD']}| ''"
+            reload_connections "#{ENV['FLUENT_ELASTICSEARCH_RELOAD_CONNECTIONS'] || 'false'}"
+            reconnect_on_error "#{ENV['FLUENT_ELASTICSEARCH_RECONNECT_ON_ERROR'] || 'true'}"
+            reload_on_failure "#{ENV['FLUENT_ELASTICSEARCH_RELOAD_ON_FAILURE'] || 'true'}"
+            log_es_400_reason "#{ENV['FLUENT_ELASTICSEARCH_LOG_ES_400_REASON'] || 'false'}"
+            logstash_prefix "#{ENV['APP2_ELASTICSEARCH_LOGSTASH_PREFIX'] || 'kubernetes'}"
+            logstash_format "#{ENV['FLUENT_ELASTICSEARCH_LOGSTASH_FORMAT'] || 'true'}"
+            index_name "#{ENV['APP2_ELASTICSEARCH_LOGSTASH_INDEX_NAME'] || 'kubernetes'}"
+            type_name "#{ENV['FLUENT_ELASTICSEARCH_LOGSTASH_TYPE_NAME'] || 'fluentd'}"
+            <buffer>
+              flush_thread_count "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_FLUSH_THREAD_COUNT'] || '8'}"
+              flush_interval "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_FLUSH_INTERVAL'] || '5s'}"
+              chunk_limit_size "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_CHUNK_LIMIT_SIZE'] || '2M'}"
+              queue_limit_length "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_QUEUE_LIMIT_LENGTH'] || '32'}"
+              retry_max_interval "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_RETRY_MAX_INTERVAL'] || '30'}"
+              retry_forever true
+            </buffer>
+          </store>
+          <store>
+            @type loki
+            @id out_loki
+            @log_level info
+            line_format key_value
+            remove_keys ["kubernetes","docker"]
+            url "#{ENV['FLUENT_LOKI_HOST'] || 'http://loki:3100'}"
+            label_keys container,container_id,host,namespace,pod,pod_id
+            tenant app2
+            <label>
+              container $.kubernetes.container_name
+              namespace $.kubernetes.namespace_name
+              pod $.kubernetes.pod_name
+            </label>
+            <buffer>
+              flush_thread_count "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_FLUSH_THREAD_COUNT'] || '8'}"
+              flush_interval "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_FLUSH_INTERVAL'] || '5s'}"
+              chunk_limit_size "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_CHUNK_LIMIT_SIZE'] || '2M'}"
+              queue_limit_length "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_QUEUE_LIMIT_LENGTH'] || '32'}"
+              retry_max_interval "#{ENV['FLUENT_ELASTICSEARCH_BUFFER_RETRY_MAX_INTERVAL'] || '30'}"
+              retry_forever true
+            </buffer>
+          </store>
       </match>
     </label>
 
